@@ -1,7 +1,13 @@
 import fs from 'fs'
 import path from 'path'
+import type { ConfidenceLevel } from './rag'
 
 export type TicketStatus = 'pending' | 'approved' | 'rejected'
+
+export interface TicketConfidence {
+  level: ConfidenceLevel
+  reasoning: string
+}
 
 export interface Ticket {
   id: string
@@ -13,6 +19,10 @@ export interface Ticket {
   status: TicketStatus
   approvedResponse: string | null
   rejectionReason?: string
+  confidence?: TicketConfidence
+  autoApproved?: boolean
+  district?: string
+  wasEdited?: boolean
 }
 
 const QUEUE_FILE = path.join(process.cwd(), 'data', 'queue.json')
@@ -26,7 +36,7 @@ function ensureDataDir() {
 export function getQueue(): Ticket[] {
   ensureDataDir()
   const raw = fs.readFileSync(QUEUE_FILE, 'utf-8')
-  return JSON.parse(raw)
+  return JSON.parse(raw) as Ticket[]
 }
 
 export function saveQueue(queue: Ticket[]) {
@@ -34,14 +44,16 @@ export function saveQueue(queue: Ticket[]) {
   fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2))
 }
 
-export function addTicket(ticket: Omit<Ticket, 'id' | 'timestamp' | 'status' | 'approvedResponse'>): Ticket {
+export function addTicket(
+  ticket: Omit<Ticket, 'id' | 'timestamp' | 'status' | 'approvedResponse'>
+): Ticket {
   const queue = getQueue()
   const newTicket: Ticket = {
     ...ticket,
     id: `ticket_${String(queue.length + 1).padStart(4, '0')}`,
     timestamp: new Date().toISOString(),
-    status: 'pending',
-    approvedResponse: null
+    status: ticket.autoApproved ? 'approved' : 'pending',
+    approvedResponse: ticket.autoApproved ? ticket.draft : null
   }
   queue.push(newTicket)
   saveQueue(queue)

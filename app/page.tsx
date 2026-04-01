@@ -1,8 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 
 type TicketStatus = 'pending' | 'approved' | 'rejected'
+type ConfidenceLevel = 'HIGH' | 'MEDIUM' | 'LOW'
+
+interface TicketConfidence {
+  level: ConfidenceLevel
+  reasoning: string
+}
 
 interface Ticket {
   id: string
@@ -14,6 +21,10 @@ interface Ticket {
   status: TicketStatus
   approvedResponse: string | null
   rejectionReason?: string
+  confidence?: TicketConfidence
+  autoApproved?: boolean
+  district?: string
+  wasEdited?: boolean
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -32,14 +43,33 @@ const STATUS_STYLES: Record<TicketStatus, string> = {
   rejected: 'bg-red-50 text-red-700 border border-red-200'
 }
 
+const CONFIDENCE_STYLES: Record<ConfidenceLevel, string> = {
+  HIGH: 'bg-green-50 text-green-700 border border-green-200',
+  MEDIUM: 'bg-amber-50 text-amber-700 border border-amber-200',
+  LOW: 'bg-red-50 text-red-700 border border-red-200'
+}
+
 function formatTime(iso: string) {
   const d = new Date(iso)
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
     ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
+function ConfidenceBadge({ confidence }: { confidence?: TicketConfidence }) {
+  if (!confidence) return null
+  return (
+    <span
+      className={`text-xs px-2 py-0.5 rounded-full border ${CONFIDENCE_STYLES[confidence.level]}`}
+      title={confidence.reasoning}
+    >
+      {confidence.level}
+    </span>
+  )
+}
+
 export default function Home() {
   const [question, setQuestion] = useState('')
+  const [district, setDistrict] = useState('')
   const [loading, setLoading] = useState(false)
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null)
   const [editedDraft, setEditedDraft] = useState('')
@@ -47,15 +77,27 @@ export default function Home() {
   const [queueLoading, setQueueLoading] = useState(true)
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [filter, setFilter] = useState<'all' | TicketStatus>('all')
+  const [learnedCount, setLearnedCount] = useState(0)
 
   const fetchQueue = useCallback(async () => {
     const res = await fetch('/api/queue')
-    const data = await res.json()
+    const data = await res.json() as Ticket[]
     setQueue(data)
     setQueueLoading(false)
   }, [])
 
-  useEffect(() => { fetchQueue() }, [fetchQueue])
+  const fetchLearnedCount = useCallback(async () => {
+    const res = await fetch('/api/learned-count')
+    if (res.ok) {
+      const data = await res.json() as { count: number }
+      setLearnedCount(data.count)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchQueue()
+    fetchLearnedCount()
+  }, [fetchQueue, fetchLearnedCount])
 
   async function submitTicket() {
     if (!question.trim()) return
@@ -65,13 +107,14 @@ export default function Home() {
       const res = await fetch('/api/ticket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
+        body: JSON.stringify({ question, district: district.trim() || undefined })
       })
-      const ticket = await res.json()
+      const ticket = await res.json() as Ticket
       setActiveTicket(ticket)
       setEditedDraft(ticket.draft)
       setQuestion('')
       fetchQueue()
+      fetchLearnedCount()
     } finally {
       setLoading(false)
     }
@@ -86,6 +129,7 @@ export default function Home() {
     setActiveTicket(null)
     setSelectedTicket(null)
     fetchQueue()
+    fetchLearnedCount()
   }
 
   async function rejectTicket(id: string) {
@@ -113,12 +157,25 @@ export default function Home() {
           <span className="text-slate-300 text-sm">·</span>
           <span className="text-slate-500 text-sm">AI Draft Queue</span>
         </div>
-        {pendingCount > 0 && (
-          <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>
-            {pendingCount} pending review
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          {learnedCount > 0 && (
+            <span className="text-xs text-slate-400">
+              Learned from {learnedCount} approved response{learnedCount !== 1 ? 's' : ''}
+            </span>
+          )}
+          <Link
+            href="/analytics"
+            className="text-xs text-slate-500 hover:text-slate-700 transition-colors border border-slate-200 px-3 py-1.5 rounded-lg hover:border-slate-300"
+          >
+            Analytics
+          </Link>
+          {pendingCount > 0 && (
+            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>
+              {pendingCount} pending review
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -129,6 +186,13 @@ export default function Home() {
           </div>
 
           <div className="space-y-3">
+            <input
+              type="text"
+              value={district}
+              onChange={e => setDistrict(e.target.value)}
+              placeholder="District / School (optional)"
+              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
             <textarea
               value={question}
               onChange={e => setQuestion(e.target.value)}
@@ -162,8 +226,21 @@ export default function Home() {
                   <span className="text-xs font-medium text-slate-600">{activeTicket.id}</span>
                   <span className="text-slate-300">·</span>
                   <span className="text-xs text-slate-500">{CATEGORY_LABELS[activeTicket.category] || activeTicket.category}</span>
+                  {activeTicket.district && (
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <span className="text-xs text-slate-500">{activeTicket.district}</span>
+                    </>
+                  )}
                 </div>
-                <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pending review</span>
+                <div className="flex items-center gap-2">
+                  <ConfidenceBadge confidence={activeTicket.confidence} />
+                  {activeTicket.autoApproved ? (
+                    <span className="text-xs text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">Auto-approved</span>
+                  ) : (
+                    <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pending review</span>
+                  )}
+                </div>
               </div>
               <div className="p-4 space-y-3">
                 <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Draft Response</p>
@@ -173,20 +250,22 @@ export default function Home() {
                   rows={10}
                   className="w-full text-sm text-slate-800 border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
                 />
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={() => approveTicket(activeTicket.id, editedDraft)}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition-colors"
-                  >
-                    Approve & Send
-                  </button>
-                  <button
-                    onClick={() => rejectTicket(activeTicket.id)}
-                    className="px-4 border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium py-2 rounded-lg transition-colors"
-                  >
-                    Reject
-                  </button>
-                </div>
+                {!activeTicket.autoApproved && (
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => approveTicket(activeTicket.id, editedDraft)}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+                    >
+                      Approve &amp; Send
+                    </button>
+                    <button
+                      onClick={() => rejectTicket(activeTicket.id)}
+                      className="px-4 border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium py-2 rounded-lg transition-colors"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
                 {activeTicket.relevantKbIds.length > 0 && (
                   <p className="text-xs text-slate-400">KB references: {activeTicket.relevantKbIds.join(', ')}</p>
                 )}
@@ -231,14 +310,32 @@ export default function Home() {
               >
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <p className="text-sm text-slate-800 font-medium line-clamp-2 flex-1">{ticket.question}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 capitalize ${STATUS_STYLES[ticket.status]}`}>
-                    {ticket.status}
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {ticket.confidence && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${CONFIDENCE_STYLES[ticket.confidence.level]}`}>
+                        {ticket.confidence.level}
+                      </span>
+                    )}
+                    {ticket.autoApproved && (
+                      <span className="text-xs px-2 py-0.5 rounded-full border bg-green-50 text-green-700 border-green-200">
+                        Auto
+                      </span>
+                    )}
+                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 capitalize ${STATUS_STYLES[ticket.status]}`}>
+                      {ticket.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
+                <div className="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
                   <span>{ticket.id}</span>
                   <span>·</span>
                   <span>{CATEGORY_LABELS[ticket.category] || ticket.category}</span>
+                  {ticket.district && (
+                    <>
+                      <span>·</span>
+                      <span>{ticket.district}</span>
+                    </>
+                  )}
                   <span>·</span>
                   <span>{formatTime(ticket.timestamp)}</span>
                 </div>
@@ -247,6 +344,12 @@ export default function Home() {
                   <div className="mt-4 pt-4 border-t border-slate-100 space-y-3" onClick={e => e.stopPropagation()}>
                     <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Draft</p>
                     <p className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{ticket.approvedResponse || ticket.draft}</p>
+                    {ticket.confidence && (
+                      <p className="text-xs text-slate-400">
+                        Confidence: <span className={`font-medium ${ticket.confidence.level === 'HIGH' ? 'text-green-600' : ticket.confidence.level === 'LOW' ? 'text-red-600' : 'text-amber-600'}`}>{ticket.confidence.level}</span>
+                        {' '}&mdash; {ticket.confidence.reasoning}
+                      </p>
+                    )}
                     {ticket.status === 'pending' && (
                       <div className="flex gap-2 pt-1">
                         <button
@@ -268,7 +371,7 @@ export default function Home() {
                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                         </svg>
-                        Approved and sent
+                        {ticket.autoApproved ? 'Auto-approved' : 'Approved and sent'}
                       </div>
                     )}
                   </div>
