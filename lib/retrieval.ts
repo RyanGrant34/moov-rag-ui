@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { KNOWLEDGE_BASE, KBEntry } from './knowledge-base'
 import { getLearnedEntries, LearnedEntry } from './learned'
+import { withRetry } from './retry'
 
 const client = new Anthropic()
 
@@ -21,12 +22,13 @@ async function scoreEntry(
     ? (entry as LearnedEntry).approvedResponse
     : (entry as KBEntry).answer
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5',
-    max_tokens: 100,
-    messages: [{
-      role: 'user',
-      content: `Score how relevant this knowledge base entry is to the incoming support question.
+  const response = await withRetry(() =>
+    client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: `Score how relevant this knowledge base entry is to the incoming support question.
 
 INCOMING QUESTION:
 "${question}"
@@ -40,8 +42,9 @@ Return a JSON object with exactly two fields:
 - reasoning: one sentence explaining the score
 
 Return only the JSON, nothing else. Example: {"score": 7, "reasoning": "Both questions are about login issues with school accounts."}`
-    }]
-  })
+      }]
+    })
+  )
 
   const raw = (response.content[0] as { text: string }).text.trim()
   try {

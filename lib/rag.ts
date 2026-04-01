@@ -3,6 +3,7 @@ import { KNOWLEDGE_BASE, CATEGORIES, KBEntry } from './knowledge-base'
 import { semanticRetrieval } from './retrieval'
 import { parseTicket, assembleMultiAnswer } from './parser'
 import { getQueue } from './queue'
+import { withRetry } from './retry'
 
 const client = new Anthropic()
 
@@ -32,17 +33,19 @@ export async function classifyTicket(question: string): Promise<string> {
     .map(([k, v]) => `${k} (${v})`)
     .join(', ')
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5',
-    max_tokens: 50,
-    messages: [{
-      role: 'user',
-      content: `Classify this support question into one category.
+  const response = await withRetry(() =>
+    client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 50,
+      messages: [{
+        role: 'user',
+        content: `Classify this support question into one category.
 Categories: ${categoriesList}
 Question: "${question}"
 Return only the category key (e.g., "hardware"). Nothing else.`
-    }]
-  })
+      }]
+    })
+  )
 
   return (response.content[0] as { text: string }).text.trim()
 }
@@ -58,12 +61,13 @@ export async function scoreConfidence(
 ): Promise<ConfidenceResult> {
   const hasStrongMatch = relevantEntries.length > 0
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5',
-    max_tokens: 150,
-    messages: [{
-      role: 'user',
-      content: `Evaluate the confidence of this support response.
+  const response = await withRetry(() =>
+    client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 150,
+      messages: [{
+        role: 'user',
+        content: `Evaluate the confidence of this support response.
 
 QUESTION:
 "${question}"
@@ -83,8 +87,9 @@ Return JSON with two fields:
 - reasoning: one short sentence
 
 Return only JSON. Example: {"level": "HIGH", "reasoning": "Question directly maps to login_001 entry."}`
-    }]
-  })
+      }]
+    })
+  )
 
   const raw = (response.content[0] as { text: string }).text.trim()
   try {
@@ -108,13 +113,14 @@ async function draftSingleResponse(
     ? `\nDISTRICT HISTORY CONTEXT:\n${districtContext}\n`
     : ''
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 1000,
-    system: SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Draft a support response for this incoming question:
+  const response = await withRetry(() =>
+    client.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      messages: [{
+        role: 'user',
+        content: `Draft a support response for this incoming question:
 
 QUESTION:
 ${question}
@@ -123,8 +129,9 @@ RELEVANT KNOWLEDGE BASE CONTEXT:
 ${context}
 
 Write the response directly. No subject line, no preamble. Just the response body.`
-    }]
-  })
+      }]
+    })
+  )
 
   return (response.content[0] as { text: string }).text.trim()
 }
