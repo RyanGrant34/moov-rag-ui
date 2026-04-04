@@ -92,7 +92,7 @@ export default function AnalyticsPage() {
           <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center">
             <span className="text-white text-xs font-semibold">M</span>
           </div>
-          <span className="font-semibold text-slate-900 text-sm">MOOV Support</span>
+          <span className="font-semibold text-slate-900 text-sm">Support Portal</span>
           <span className="text-slate-300 text-sm">·</span>
           <span className="text-slate-500 text-sm">Analytics</span>
         </div>

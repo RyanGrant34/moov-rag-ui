@@ -1,1 +1,78 @@
-[]
+[
+  {
+    "question": "How do I reset a student login?",
+    "category": "login",
+    "draft": "Student login resets need to be done by a school admin with the right permissions.\n\nIf you're an admin, here's how:\n\n1. Log in at staff.joinmoov.com\n2. Go to Dashboard > Students\n3. Find the student\n4. Click on their name\n5. Select \"Reset Login\" or \"Reset Password\" (depending on your school's setup)\n\nThe student will get new login instructions at their school email, or you can provide them directly.\n\nIf you don't see that option, you might not have admin privileges for student management. Your Super Admin can adjust your permissions at More > Edit Admin Privileges.\n\nLet us know if anything else comes up.",
+    "relevantKbIds": [
+      "login_001",
+      "reader_001",
+      "reader_002"
+    ],
+    "confidence": {
+      "level": "MEDIUM",
+      "reasoning": "Could not parse confidence score"
+    },
+    "autoApproved": false,
+    "id": "ticket_0001",
+    "timestamp": "2026-04-01T17:46:01.023Z",
+    "status": "pending",
+    "approvedResponse": null
+  },
+  {
+    "question": "How do I reset a student login?",
+    "category": "login",
+    "draft": "We don't have a direct \"reset password\" feature in MOOV since students log in through your school's Google or Microsoft account system.\n\nIf a student can't log in, they need to reset their password through your school's IT department or whatever process your district uses for Google/Microsoft account issues.\n\nIf the student's account credentials work elsewhere (like for email) but not at student.joinmoov.com, they might not be synced into MOOV yet. In that case, your school's Super Admin needs to check that the student is properly added in the system.\n\nLet us know if anything else comes up.",
+    "relevantKbIds": [
+      "login_001",
+      "reader_001",
+      "reader_002"
+    ],
+    "confidence": {
+      "level": "MEDIUM",
+      "reasoning": "Could not parse confidence score"
+    },
+    "autoApproved": false,
+    "id": "ticket_0002",
+    "timestamp": "2026-04-01T17:59:31.543Z",
+    "status": "pending",
+    "approvedResponse": null
+  },
+  {
+    "question": "During my 7th period class. If a student made the pass to the bathroom and tapped out, their\npass ended when they tapped back in.\nA student made a pass to the water fountain, and when they returned the pass did not end (it\nwas as if it restarted)\nMany passes in the \"active\" show non started passes and you cannot tell who created the pass.",
+    "category": "hall_passes",
+    "draft": "Thanks for the detail. These sound like three separate issues, so let me break them down:\n\n**1. Bathroom pass ending correctly vs. water fountain pass not ending**\n\nThis shouldn't behave differently based on destination. Both should end when the student taps back in. The water fountain pass \"restarting\" instead of ending points to a syncing issue or a configuration problem with that specific location.\n\nCan you confirm the water fountain is set up as a Room (not just a destination label)? And is it in the same Room Group as your classroom? If the room grouping is off, it can cause weird tap behavior.\n\n**2. Active passes showing as \"non started\" with no creator visible**\n\nThis isn't normal. Active passes should show who created them and when they started. A few things could cause this:\n\n- Passes created offline that haven't synced yet\n- A display bug in the Active tab\n- Passes created by students (if student-initiated passes are enabled)\n\nTry refreshing the page first. If they're still showing blank, let us know roughly how many you're seeing and whether this is happening across multiple class periods or just 7th.\n\n**3. Next steps**\n\nI need a bit more info to nail this down:\n\n- What room number is the water fountain?\n- Is it in a Room Group with your classroom?\n- Are you seeing the \"non started\" issue right now, or has it cleared up since 7th period?\n\nSend that over and we'll get this sorted.\n\nLet us know if anything else comes up.",
+    "relevantKbIds": [
+      "login_001",
+      "reader_001",
+      "reader_002"
+    ],
+    "confidence": {
+      "level": "MEDIUM",
+      "reasoning": "Could not parse confidence score"
+    },
+    "autoApproved": false,
+    "id": "ticket_0003",
+    "timestamp": "2026-04-01T18:02:10.409Z",
+    "status": "pending",
+    "approvedResponse": null
+  },
+  {
+    "question": "The student photos are not loading on my handheld.",
+    "category": "hardware",
+    "draft": "The photos not loading on your handheld is usually a connectivity issue. Try these steps:\n\n1. Close the MOOV app completely and reopen it.\n2. Check that your handheld is connected to wifi. Sometimes the connection drops without showing a clear indicator.\n3. If you're still seeing blank photos, try logging out and back in.\n\nIf that doesn't fix it, let us know what model handheld you're using and whether you're seeing any error messages. We can check the sync logs on our end.\n\nLet us know if anything else comes up.",
+    "relevantKbIds": [
+      "login_001",
+      "reader_001",
+      "reader_002"
+    ],
+    "confidence": {
+      "level": "MEDIUM",
+      "reasoning": "Could not parse confidence score"
+    },
+    "autoApproved": false,
+    "id": "ticket_0004",
+    "timestamp": "2026-04-01T18:03:07.124Z",
+    "status": "pending",
+    "approvedResponse": null
+  }
+]

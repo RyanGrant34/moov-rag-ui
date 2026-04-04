@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MOOV Support",
-  description: "AI Draft Queue for MOOV Support",
+  title: "Support Portal",
+  description: "AI Draft Queue for Support Portal",
 };
 
 export default function RootLayout({

@@ -661,7 +661,7 @@ export default function Home() {
             <div className="w-7 h-7 rounded-lg bg-green-600 flex items-center justify-center shadow-sm">
               <span className="text-white text-xs font-bold">M</span>
             </div>
-            <span className="text-sm font-semibold text-slate-900">MOOV Support</span>
+            <span className="text-sm font-semibold text-slate-900">Support Portal</span>
           </div>
 
           <div className="w-px h-5 bg-slate-200" />
